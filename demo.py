@@ -10,7 +10,6 @@ def pull_instances(ec2):
 
 def pull_amis(ec2, images):
   args = dict(ImageIds=images)
-  print(args)
   resp = ec2.describe_images(**args)
   for image in resp['Images']:
     yield image 
@@ -36,8 +35,8 @@ for region in boto3.session.Session().get_available_regions("ec2"):
   for instance in pull_instances(ec2):
     ami = instance['ImageId']
     if ami not in region_ami_instances[region].keys():
-      region_ami_instances[region][ami] = { "instances":[] }
-    region_ami_instances[region][ami]["instances"].append( instance['InstanceId'] )
+      region_ami_instances[region][ami] = { "instances":{} }
+    region_ami_instances[region][ami]["instances"][instance["InstanceId"]]={"State": instance["State"]["Name"], "Tags": instance.get("Tags",[]), "InstanceType": instance["InstanceType"] }
   if len(region_ami_instances[region].keys()) == 0:
     continue
   for image in pull_amis(ec2, list(region_ami_instances[region].keys()) ):
@@ -50,5 +49,8 @@ for region in boto3.session.Session().get_available_regions("ec2"):
     else:
     region_ami_instances[region][image]['image']['Tags'][tag['Key']] = tag['Value']
 """
+
+with open('results.txt','w') as f:
+  f.write(json.dumps(region_ami_instances, indent=2))
 
 print(json.dumps(region_ami_instances, indent=2))
